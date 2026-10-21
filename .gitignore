@@ -1,0 +1,32 @@
+# 依赖与构建产物
+.venv/
+node_modules/
+__pycache__/
+*.py[cod]
+dist/
+.vite/
+
+# 运行时产物
+*.log
+!log/*.pdf
+.env
+.env.local
+
+# 附件存储（由 backup 机制单独归档，不入库）
+backend/uploads/*
+!backend/uploads/.gitkeep
+
+# 备份、日志与密钥（数据库 app.db 保留在版本库中，便于恢复演示数据）
+backend/backups/
+backend/logs/
+backend/instance/
+
+# 测试缓存
+.pytest_cache/
+
+# 编辑器
+.idea/
+.vscode/
+*.iml
+Thumbs.db
+desktop.ini
