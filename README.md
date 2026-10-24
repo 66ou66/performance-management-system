@@ -44,7 +44,7 @@
 │       ├── stores/          # Pinia 状态
 │       ├── router/          # 路由与登录 / 角色守卫
 │       └── utils/           # 文件下载、格式化等工具
-├── .venv/                   # 后端 Python 虚拟环境
+├── .venv/                   # 后端 Python 虚拟环境（本地 python -m venv .venv 创建，不入库）
 ├── assets/app.ico           # 桌面快捷方式图标（由 tools/make_icon.py 生成）
 ├── tools/
 │   ├── make_icon.py         # 纯标准库生成 app.ico
