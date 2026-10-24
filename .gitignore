@@ -5,12 +5,16 @@ __pycache__/
 *.py[cod]
 dist/
 .vite/
+target/
+build/
+*.class
 
 # 运行时产物
 *.log
 !log/*.pdf
 .env
 .env.local
+application-local.yml
 
 # 附件存储（由 backup 机制单独归档，不入库）
 backend/uploads/*
@@ -30,3 +34,4 @@ backend/instance/
 *.iml
 Thumbs.db
 desktop.ini
+.DS_Store
