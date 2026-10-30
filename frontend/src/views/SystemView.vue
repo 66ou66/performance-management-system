@@ -1,152 +1,227 @@
 <template>
-  <div class="page">
-    <div class="page-header">
+  <div class="space-y-4 p-6">
+    <div class="flex flex-wrap items-start justify-between gap-3">
       <div>
-        <h2 class="page-title">系统维护</h2>
-        <p class="page-subtitle">运行状态、数据备份、孤儿附件清理与结构检查</p>
+        <h2 class="text-xl font-semibold tracking-tight">系统维护</h2>
+        <p class="mt-1 text-sm text-muted-foreground">运行状态、数据备份、孤儿附件清理与结构检查</p>
       </div>
-      <el-button :icon="Refresh" @click="loadAll">刷新</el-button>
+      <Button variant="outline" @click="loadAll">
+        <RefreshCw class="size-4" /> 刷新
+      </Button>
     </div>
 
-    <el-row :gutter="16">
-      <el-col :span="12">
-        <div class="card">
-          <h4 class="section-title">运行信息</h4>
-          <el-descriptions v-if="info" :column="1" border size="small">
-            <el-descriptions-item label="运行模式">
-              <el-tag size="small" :type="info.app_env === 'production' ? 'success' : 'warning'">
+    <div class="grid gap-4 lg:grid-cols-2">
+      <!-- 运行信息 -->
+      <div class="rounded-xl border bg-white p-4 shadow-sm">
+        <h4 class="mb-3 text-sm font-semibold">运行信息</h4>
+        <dl v-if="info" class="space-y-2.5 text-sm">
+          <div class="flex items-center gap-2">
+            <dt class="w-28 shrink-0 text-muted-foreground">运行模式</dt>
+            <dd class="flex items-center gap-2">
+              <Badge
+                variant="secondary"
+                :class="info.app_env === 'production' ? 'text-emerald-600' : 'text-amber-600'"
+              >
                 {{ info.app_env }}
-              </el-tag>
-              <el-tag v-if="info.debug" size="small" type="danger" style="margin-left: 6px">
-                调试模式开启
-              </el-tag>
-            </el-descriptions-item>
-            <el-descriptions-item label="成果数据">
-              {{ info.coverage.achievements }} 条（回收站 {{ info.coverage.trash }} 条）
-            </el-descriptions-item>
-            <el-descriptions-item label="指标点 / 字典项">
-              {{ info.coverage.indicators }} / {{ info.coverage.dict_items }}
-            </el-descriptions-item>
-            <el-descriptions-item label="操作日志">{{ info.coverage.logs }} 条</el-descriptions-item>
-            <el-descriptions-item label="支撑材料文件">
-              {{ info.upload_files }} 个（{{ info.upload_size }}）
-            </el-descriptions-item>
-            <el-descriptions-item label="送审模式">
-              {{ info.require_review ? '开启（新成果需审核）' : '关闭（新成果直接通过）' }}
-            </el-descriptions-item>
-            <el-descriptions-item label="强制改密">
-              {{ info.force_password_change ? '开启' : '关闭' }}
-            </el-descriptions-item>
-            <el-descriptions-item label="口令强度校验">
-              {{ info.password_strength_check ? '开启' : '关闭' }}
-            </el-descriptions-item>
-            <el-descriptions-item label="上传上限">
-              {{ info.max_upload_mb }} MB
-            </el-descriptions-item>
-            <el-descriptions-item label="CORS 白名单">
-              <span class="mono">{{ (info.cors_origins || []).join(' , ') }}</span>
-            </el-descriptions-item>
-          </el-descriptions>
-        </div>
-      </el-col>
-      <el-col :span="12">
-        <div class="card">
-          <h4 class="section-title">数据备份</h4>
-          <p class="section-hint">
-            备份包含数据库与 uploads 目录下的全部支撑材料，仅保留最近
-            {{ backups.keep }} 份。
+              </Badge>
+              <Badge v-if="info.debug" variant="destructive">调试模式开启</Badge>
+            </dd>
+          </div>
+          <div class="flex gap-2">
+            <dt class="w-28 shrink-0 text-muted-foreground">成果数据</dt>
+            <dd>{{ info.coverage.achievements }} 条（回收站 {{ info.coverage.trash }} 条）</dd>
+          </div>
+          <div class="flex gap-2">
+            <dt class="w-28 shrink-0 text-muted-foreground">指标点 / 字典项</dt>
+            <dd>{{ info.coverage.indicators }} / {{ info.coverage.dict_items }}</dd>
+          </div>
+          <div class="flex gap-2">
+            <dt class="w-28 shrink-0 text-muted-foreground">操作日志</dt>
+            <dd>{{ info.coverage.logs }} 条</dd>
+          </div>
+          <div class="flex gap-2">
+            <dt class="w-28 shrink-0 text-muted-foreground">支撑材料文件</dt>
+            <dd>{{ info.upload_files }} 个（{{ info.upload_size }}）</dd>
+          </div>
+          <div class="flex gap-2">
+            <dt class="w-28 shrink-0 text-muted-foreground">送审模式</dt>
+            <dd>{{ info.require_review ? '开启（新成果需审核）' : '关闭（新成果直接通过）' }}</dd>
+          </div>
+          <div class="flex gap-2">
+            <dt class="w-28 shrink-0 text-muted-foreground">强制改密</dt>
+            <dd>{{ info.force_password_change ? '开启' : '关闭' }}</dd>
+          </div>
+          <div class="flex gap-2">
+            <dt class="w-28 shrink-0 text-muted-foreground">口令强度校验</dt>
+            <dd>{{ info.password_strength_check ? '开启' : '关闭' }}</dd>
+          </div>
+          <div class="flex gap-2">
+            <dt class="w-28 shrink-0 text-muted-foreground">上传上限</dt>
+            <dd>{{ info.max_upload_mb }} MB</dd>
+          </div>
+          <div class="flex gap-2">
+            <dt class="w-28 shrink-0 text-muted-foreground">CORS 白名单</dt>
+            <dd class="font-mono text-xs">{{ (info.cors_origins || []).join(' , ') }}</dd>
+          </div>
+        </dl>
+      </div>
+
+      <div class="space-y-4">
+        <!-- 数据备份 -->
+        <div class="rounded-xl border bg-white p-4 shadow-sm">
+          <h4 class="mb-1 text-sm font-semibold">数据备份</h4>
+          <p class="mb-3 text-xs text-muted-foreground">
+            备份包含数据库与 uploads 目录下的全部支撑材料，仅保留最近 {{ backups.keep }} 份。
           </p>
-          <el-button type="primary" :loading="backingUp" @click="createBackup">
+          <Button :disabled="backingUp" @click="createBackup">
+            <LoaderCircle v-if="backingUp" class="size-4 animate-spin" />
+            <Database v-else class="size-4" />
             立即备份
-          </el-button>
-          <el-table
-            :data="backups.items || []"
-            v-loading="loading"
-            border
-            size="small"
-            style="margin-top: 12px"
-            empty-text="暂无备份"
-          >
-            <el-table-column prop="name" label="备份文件" min-width="180" show-overflow-tooltip />
-            <el-table-column prop="size_text" label="大小" width="90" />
-            <el-table-column prop="created_at" label="时间" width="160" />
-            <el-table-column label="操作" width="80">
-              <template #default="{ row }">
-                <el-button link type="primary" size="small" @click="download(row)">下载</el-button>
-              </template>
-            </el-table-column>
-          </el-table>
+          </Button>
+          <Table class="mt-3">
+            <TableHeader>
+              <TableRow>
+                <TableHead>备份文件</TableHead>
+                <TableHead class="w-[90px]">大小</TableHead>
+                <TableHead class="w-[160px]">时间</TableHead>
+                <TableHead class="w-[90px] text-right">操作</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              <TableRow v-for="row in backups.items || []" :key="row.name">
+                <TableCell class="max-w-[180px] truncate font-medium">{{ row.name }}</TableCell>
+                <TableCell>{{ row.size_text }}</TableCell>
+                <TableCell class="text-muted-foreground">{{ row.created_at }}</TableCell>
+                <TableCell class="text-right">
+                  <Button variant="link" size="sm" @click="download(row)">下载</Button>
+                </TableCell>
+              </TableRow>
+              <TableEmpty v-if="!(backups.items || []).length" :colspan="4">暂无备份</TableEmpty>
+            </TableBody>
+          </Table>
         </div>
 
-        <div class="card">
-          <h4 class="section-title">数据一致性</h4>
-          <p class="section-hint">
+        <!-- 数据一致性 -->
+        <div class="rounded-xl border bg-white p-4 shadow-sm">
+          <h4 class="mb-1 text-sm font-semibold">数据一致性</h4>
+          <p class="mb-3 text-xs text-muted-foreground">
             孤儿附件指磁盘上已存在、但没有任何成果引用的文件（例如手工删除成果留下的残留）。
           </p>
-          <el-alert
-            :type="orphanTotal ? 'warning' : 'success'"
-            :closable="false"
-            show-icon
-            :title="orphanTotal ? `发现 ${orphanTotal} 个孤儿文件` : '未发现孤儿文件'"
-          />
-          <div class="button-row">
-            <el-button :loading="loading" @click="loadOrphans">重新扫描</el-button>
-            <el-button type="warning" :disabled="!orphanTotal" @click="cleanup">
-              清理孤儿文件
-            </el-button>
-            <el-button @click="runMigrate">检查数据结构</el-button>
+          <Alert :class="orphanTotal ? 'border-amber-200 bg-amber-50' : 'border-emerald-200 bg-emerald-50'">
+            <AlertDescription :class="orphanTotal ? 'text-amber-700' : 'text-emerald-700'">
+              {{ orphanTotal ? `发现 ${orphanTotal} 个孤儿文件` : '未发现孤儿文件' }}
+            </AlertDescription>
+          </Alert>
+          <div class="mt-3 flex flex-wrap gap-2">
+            <Button variant="outline" :disabled="loading" @click="loadOrphans">重新扫描</Button>
+            <Button variant="destructive" :disabled="!orphanTotal" @click="cleanup">
+              <Trash2 class="size-4" /> 清理孤儿文件
+            </Button>
+            <Button variant="outline" @click="runMigrate">
+              <Database class="size-4" /> 检查数据结构
+            </Button>
           </div>
-          <el-table
-            v-if="orphanTotal"
-            :data="(orphans.items || []).slice(0, 20)"
-            border
-            size="small"
-            style="margin-top: 12px"
-          >
-            <el-table-column prop="path" label="文件" min-width="240" show-overflow-tooltip />
-            <el-table-column prop="size_text" label="大小" width="90" />
-          </el-table>
+          <Table v-if="orphanTotal" class="mt-3">
+            <TableHeader>
+              <TableRow>
+                <TableHead>文件</TableHead>
+                <TableHead class="w-[90px]">大小</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              <TableRow v-for="(row, idx) in (orphans.items || []).slice(0, 20)" :key="row.path || idx">
+                <TableCell class="max-w-[240px] truncate text-muted-foreground">{{ row.path }}</TableCell>
+                <TableCell>{{ row.size_text }}</TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
         </div>
-      </el-col>
-    </el-row>
-
-    <div class="card">
-      <h4 class="section-title">结构检查记录（迁移脚本执行明细）</h4>
-      <el-table :data="migrationRows" border size="small" empty-text="本次启动未发生结构变更">
-        <el-table-column prop="index" label="#" width="60" />
-        <el-table-column prop="text" label="变更内容" min-width="400" />
-      </el-table>
+      </div>
     </div>
 
-    <div class="card">
-      <h4 class="section-title">访问节流状态（登录失败锁定）</h4>
-      <el-table :data="throttleRows" border size="small" empty-text="当前没有被锁定的账号">
-        <el-table-column prop="key" label="账号" width="180" />
-        <el-table-column prop="failures" label="近期失败次数" width="130" />
-        <el-table-column prop="locked" label="状态" width="120">
-          <template #default="{ row }">
-            <el-tag size="small" :type="row.locked ? 'danger' : 'info'">
-              {{ row.locked ? '已锁定' : '正常' }}
-            </el-tag>
-          </template>
-        </el-table-column>
-      </el-table>
+    <!-- 结构检查记录 -->
+    <div class="rounded-xl border bg-white p-4 shadow-sm">
+      <h4 class="mb-3 text-sm font-semibold">结构检查记录（迁移脚本执行明细）</h4>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead class="w-[60px]">#</TableHead>
+            <TableHead>变更内容</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          <TableRow v-for="row in migrationRows" :key="row.index">
+            <TableCell class="text-muted-foreground">{{ row.index }}</TableCell>
+            <TableCell>{{ row.text }}</TableCell>
+          </TableRow>
+          <TableEmpty v-if="!migrationRows.length" :colspan="2">本次启动未发生结构变更</TableEmpty>
+        </TableBody>
+      </Table>
     </div>
+
+    <!-- 访问节流状态 -->
+    <div class="rounded-xl border bg-white p-4 shadow-sm">
+      <h4 class="mb-3 text-sm font-semibold">访问节流状态（登录失败锁定）</h4>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead class="w-[180px]">账号</TableHead>
+            <TableHead class="w-[130px]">近期失败次数</TableHead>
+            <TableHead class="w-[120px]">状态</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          <TableRow v-for="row in throttleRows" :key="row.key">
+            <TableCell class="font-medium">{{ row.key }}</TableCell>
+            <TableCell>{{ row.failures }}</TableCell>
+            <TableCell>
+              <Badge
+                variant="secondary"
+                :class="row.locked ? 'text-destructive' : 'text-muted-foreground'"
+              >
+                {{ row.locked ? '已锁定' : '正常' }}
+              </Badge>
+            </TableCell>
+          </TableRow>
+          <TableEmpty v-if="!throttleRows.length" :colspan="3">当前没有被锁定的账号</TableEmpty>
+        </TableBody>
+      </Table>
+    </div>
+
+    <!-- 确认弹窗 -->
+    <ConfirmDialog
+      v-model:open="confirmState.open"
+      title="清理确认"
+      :description="`确认删除 ${orphanTotal} 个未被引用的文件吗？该操作不会影响任何成果数据。`"
+      confirm-text="清理"
+      :danger="true"
+      @confirm="onConfirm"
+    />
   </div>
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { Refresh } from '@element-plus/icons-vue'
+import { computed, onMounted, reactive, ref } from 'vue'
+import { toast } from 'vue-sonner'
+import { Database, LoaderCircle, RefreshCw, Trash2 } from 'lucide-vue-next'
 import { systemApi } from '../api'
 import { formatSize, saveBlob } from '../utils/file'
+import ConfirmDialog from '../components/ConfirmDialog.vue'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Table, TableBody, TableCell, TableEmpty, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 
 const info = ref(null)
 const backups = ref({ items: [], keep: 10 })
 const orphans = ref({ items: [], total: 0 })
 const loading = ref(false)
 const backingUp = ref(false)
+
+const confirmState = reactive({
+  open: false,
+  handler: null
+})
 
 const orphanTotal = computed(() => orphans.value.total || 0)
 const migrationRows = computed(() => {
@@ -200,7 +275,7 @@ async function createBackup() {
   backingUp.value = true
   try {
     const data = await systemApi.backup()
-    ElMessage.success(`备份已生成：${data.name}（${formatSize(data.size)}）`)
+    toast.success(`备份已生成：${data.name}（${formatSize(data.size)}）`)
     backups.value = await systemApi.backups()
   } catch (err) {
     // 统一错误处理
@@ -219,17 +294,19 @@ async function download(row) {
 }
 
 function cleanup() {
-  ElMessageBox.confirm(
-    `确认删除 ${orphanTotal.value} 个未被引用的文件吗？该操作不会影响任何成果数据。`,
-    '清理确认',
-    { confirmButtonText: '清理', cancelButtonText: '取消', type: 'warning' }
-  )
-    .then(async () => {
-      const data = await systemApi.cleanupOrphans()
-      ElMessage.success(`已清理 ${data.removed} 个文件`)
-      loadAll()
-    })
-    .catch(() => {})
+  confirmState.open = true
+  confirmState.handler = async () => {
+    const data = await systemApi.cleanupOrphans()
+    toast.success(`已清理 ${data.removed} 个文件`)
+    loadAll()
+  }
+}
+
+function onConfirm() {
+  confirmState.open = false
+  const handler = confirmState.handler
+  confirmState.handler = null
+  if (handler) handler()
 }
 
 async function runMigrate() {
@@ -237,9 +314,9 @@ async function runMigrate() {
     const data = await systemApi.migrate()
     const actions = data.actions || []
     if (actions.length) {
-      ElMessage.success(`执行了 ${actions.length} 项结构变更`)
+      toast.success(`执行了 ${actions.length} 项结构变更`)
     } else {
-      ElMessage.info('数据结构已是最新，无需变更')
+      toast.info('数据结构已是最新，无需变更')
     }
     loadAll()
   } catch (err) {
@@ -249,28 +326,3 @@ async function runMigrate() {
 
 onMounted(loadAll)
 </script>
-
-<style scoped>
-.section-title {
-  margin: 0 0 10px;
-  font-size: 14px;
-  color: #303133;
-}
-
-.section-hint {
-  margin: 0 0 10px;
-  font-size: 12px;
-  color: #909399;
-}
-
-.button-row {
-  margin-top: 12px;
-  display: flex;
-  gap: 8px;
-}
-
-.mono {
-  font-family: Consolas, Menlo, monospace;
-  font-size: 12px;
-}
-</style>

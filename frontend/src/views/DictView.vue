@@ -1,134 +1,198 @@
 <template>
-  <div class="page">
-    <div class="page-header">
+  <div class="space-y-4 p-6">
+    <div class="flex flex-wrap items-start justify-between gap-3">
       <div>
-        <h2 class="page-title">基础字典管理</h2>
-        <p class="page-subtitle">
-          院系 / 专业 / 职称 / 年级的规范取值。统一字典可避免"计算机学院"与"计算机学院 "
-          被统计成两个院系
+        <h2 class="text-xl font-semibold tracking-tight">基础字典管理</h2>
+        <p class="mt-1 text-sm text-muted-foreground">
+          院系 / 专业 / 职称 / 年级的规范取值。统一字典可避免“计算机学院”与“计算机学院 ”被统计成两个院系
         </p>
       </div>
-      <el-button type="primary" :icon="Plus" @click="openCreate">新增字典项</el-button>
+      <Button @click="openCreate"><Plus class="size-4" /> 新增字典项</Button>
     </div>
 
-    <div class="card">
-      <el-tabs v-model="activeKind" @tab-change="loadUsage">
-        <el-tab-pane
-          v-for="kind in kinds"
-          :key="kind.value"
-          :label="kind.label"
-          :name="kind.value"
-        />
-      </el-tabs>
+    <!-- 类型切换 -->
+    <div class="inline-flex flex-wrap items-center gap-1 rounded-lg border bg-muted p-1">
+      <Button
+        v-for="kind in kinds"
+        :key="kind.value"
+        :variant="activeKind === kind.value ? 'default' : 'ghost'"
+        size="sm"
+        @click="activeKind = kind.value; loadUsage()"
+      >
+        {{ kind.label }}
+      </Button>
+    </div>
 
-      <el-row :gutter="16">
-        <el-col :span="14">
-          <h4 class="section-title">已登记取值</h4>
-          <el-table :data="currentItems" v-loading="loading" border stripe empty-text="暂无字典项">
-            <el-table-column prop="name" label="名称" min-width="150" />
-            <el-table-column label="别名" min-width="140">
-              <template #default="{ row }">
-                <span v-if="row.aliases && row.aliases.length">
-                  {{ row.aliases.join('、') }}
-                </span>
-                <span v-else class="muted">-</span>
-              </template>
-            </el-table-column>
-            <el-table-column prop="parent_name" label="上级" width="120">
-              <template #default="{ row }">{{ row.parent_name || '-' }}</template>
-            </el-table-column>
-            <el-table-column prop="sort_order" label="排序" width="70" />
-            <el-table-column label="状态" width="80">
-              <template #default="{ row }">
-                <el-tag size="small" :type="row.is_active ? 'success' : 'info'">
+    <!-- 双栏 -->
+    <div class="grid gap-4 xl:grid-cols-[1.4fr_1fr]">
+      <div class="rounded-xl border bg-white shadow-sm">
+        <div class="border-b px-4 py-3 text-sm font-medium">已登记取值</div>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>名称</TableHead>
+              <TableHead>别名</TableHead>
+              <TableHead class="w-[120px]">上级</TableHead>
+              <TableHead class="w-[70px]">排序</TableHead>
+              <TableHead class="w-[80px]">状态</TableHead>
+              <TableHead class="w-[150px] text-right">操作</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            <TableRow v-for="row in currentItems" :key="row.id">
+              <TableCell class="font-medium">{{ row.name }}</TableCell>
+              <TableCell class="max-w-[140px] truncate text-muted-foreground">
+                {{ row.aliases && row.aliases.length ? row.aliases.join('、') : '-' }}
+              </TableCell>
+              <TableCell class="text-muted-foreground">{{ row.parent_name || '-' }}</TableCell>
+              <TableCell>{{ row.sort_order }}</TableCell>
+              <TableCell>
+                <Badge :variant="row.is_active ? 'secondary' : 'outline'" :class="row.is_active ? 'text-emerald-600' : 'text-muted-foreground'">
                   {{ row.is_active ? '启用' : '停用' }}
-                </el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column label="操作" width="150" fixed="right">
-              <template #default="{ row }">
-                <el-button link type="primary" size="small" @click="openEdit(row)">编辑</el-button>
-                <el-button link type="primary" size="small" @click="openMerge(row)">合并</el-button>
-                <el-button link type="danger" size="small" @click="remove(row)">删除</el-button>
-              </template>
-            </el-table-column>
-          </el-table>
-        </el-col>
-        <el-col :span="10">
-          <h4 class="section-title">数据中实际出现的取值</h4>
-          <p class="section-hint">
+                </Badge>
+              </TableCell>
+              <TableCell class="text-right">
+                <div class="flex justify-end gap-1">
+                  <Button variant="ghost" size="sm" @click="openEdit(row)">编辑</Button>
+                  <Button variant="ghost" size="sm" @click="openMerge(row)">合并</Button>
+                  <Button variant="ghost" size="sm" class="text-destructive hover:text-destructive" @click="remove(row)">删除</Button>
+                </div>
+              </TableCell>
+            </TableRow>
+            <TableEmpty v-if="!currentItems.length" :colspan="6">暂无字典项</TableEmpty>
+          </TableBody>
+        </Table>
+      </div>
+
+      <div class="rounded-xl border bg-white shadow-sm">
+        <div class="border-b px-4 py-3">
+          <div class="text-sm font-medium">数据中实际出现的取值</div>
+          <p class="mt-0.5 text-xs text-muted-foreground">
             标记为「未登记」的取值建议补充进字典，或合并到已有取值上，以免统计口径分裂。
           </p>
-          <el-table :data="usageRows" border stripe size="small" empty-text="暂无数据">
-            <el-table-column prop="name" label="取值" min-width="130" />
-            <el-table-column prop="count" label="记录数" width="80" />
-            <el-table-column label="状态" width="90">
-              <template #default="{ row }">
-                <el-tag size="small" :type="row.registered ? 'success' : 'warning'">
+        </div>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>取值</TableHead>
+              <TableHead class="w-[80px]">记录数</TableHead>
+              <TableHead class="w-[90px]">状态</TableHead>
+              <TableHead class="w-[90px] text-right">操作</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            <TableRow v-for="row in usageRows" :key="row.name">
+              <TableCell class="max-w-[130px] truncate font-medium">{{ row.name }}</TableCell>
+              <TableCell>{{ row.count }}</TableCell>
+              <TableCell>
+                <Badge :variant="row.registered ? 'secondary' : 'outline'" :class="row.registered ? 'text-emerald-600' : 'text-amber-600'">
                   {{ row.registered ? '已登记' : '未登记' }}
-                </el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column label="操作" width="90">
-              <template #default="{ row }">
-                <el-button
-                  v-if="!row.registered"
-                  link
-                  type="primary"
-                  size="small"
-                  @click="quickRegister(row)"
-                >
-                  登记
-                </el-button>
-              </template>
-            </el-table-column>
-          </el-table>
-        </el-col>
-      </el-row>
+                </Badge>
+              </TableCell>
+              <TableCell class="text-right">
+                <Button v-if="!row.registered" variant="ghost" size="sm" @click="quickRegister(row)">登记</Button>
+              </TableCell>
+            </TableRow>
+            <TableEmpty v-if="!usageRows.length" :colspan="4">暂无数据</TableEmpty>
+          </TableBody>
+        </Table>
+      </div>
     </div>
 
-    <el-dialog
-      v-model="dialogVisible"
-      :title="form.id ? '编辑字典项' : '新增字典项'"
-      width="520px"
-    >
-      <el-form ref="formRef" :model="form" :rules="rules" label-width="90px">
-        <el-form-item label="类型">
-          <el-input :model-value="kindLabel(form.kind)" disabled />
-        </el-form-item>
-        <el-form-item label="名称" prop="name">
-          <el-input v-model="form.name" maxlength="120" />
-        </el-form-item>
-        <el-form-item label="别名">
-          <el-input
-            v-model="form.aliases"
-            placeholder="多个别名用逗号分隔，导入/录入时会自动归一"
-          />
-        </el-form-item>
-        <el-form-item v-if="form.kind === 'major'" label="所属院系">
-          <el-select v-model="form.parent_name" clearable filterable allow-create style="width: 100%">
-            <el-option v-for="item in departmentNames" :key="item" :label="item" :value="item" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="排序">
-          <el-input-number v-model="form.sort_order" :controls="false" style="width: 100%" />
-        </el-form-item>
-        <el-form-item label="启用">
-          <el-switch v-model="form.is_active" />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="saving" @click="handleSubmit">保存</el-button>
-      </template>
-    </el-dialog>
+    <!-- 新增/编辑弹窗 -->
+    <Dialog v-model:open="dialogVisible">
+      <DialogContent class="sm:max-w-[520px]">
+        <DialogHeader>
+          <DialogTitle>{{ form.id ? '编辑字典项' : '新增字典项' }}</DialogTitle>
+        </DialogHeader>
+        <div class="space-y-3.5">
+          <div class="grid gap-1.5">
+            <Label>类型</Label>
+            <Input :model-value="kindLabel(form.kind)" disabled />
+          </div>
+          <div class="grid gap-1.5">
+            <Label>名称 <span class="text-destructive">*</span></Label>
+            <Input v-model="form.name" maxlength="120" placeholder="请输入字典项名称" />
+          </div>
+          <div class="grid gap-1.5">
+            <Label>别名</Label>
+            <Input v-model="form.aliases" placeholder="多个别名用逗号分隔，导入/录入时会自动归一" />
+          </div>
+          <div v-if="form.kind === 'major'" class="grid gap-1.5">
+            <Label>所属院系</Label>
+            <Select v-model="form.parent_name">
+              <SelectTrigger><SelectValue placeholder="请选择院系" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem v-for="item in departmentNames" :key="item" :value="item">{{ item }}</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div class="grid gap-1.5">
+            <Label>排序</Label>
+            <Input v-model.number="form.sort_order" type="number" />
+          </div>
+          <div class="flex items-center gap-2">
+            <Switch :checked="form.is_active" @update:checked="form.is_active = $event" />
+            <span class="text-sm text-muted-foreground">启用</span>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" @click="dialogVisible = false">取消</Button>
+          <Button :disabled="saving" @click="handleSubmit">保存</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+
+    <!-- 合并弹窗 -->
+    <Dialog v-model:open="mergeDialogVisible">
+      <DialogContent class="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>合并字典项</DialogTitle>
+          <DialogDescription>
+            将「{{ mergeSource && mergeSource.name }}」合并到其它取值：现有数据会被改写，源字典项将被删除。
+          </DialogDescription>
+        </DialogHeader>
+        <div class="grid gap-1.5">
+          <Label>目标取值</Label>
+          <Select v-model="mergeTargetId">
+            <SelectTrigger><SelectValue placeholder="请选择目标字典项" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem v-for="item in mergeOptions" :key="item.id" :value="String(item.id)">{{ item.name }}</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" @click="mergeDialogVisible = false">取消</Button>
+          <Button @click="confirmMerge">确认合并</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+
+    <!-- 确认弹窗 -->
+    <ConfirmDialog
+      v-model:open="confirmState.open"
+      :title="confirmState.title"
+      :description="confirmState.description"
+      :confirm-text="confirmState.confirmText"
+      :danger="confirmState.danger"
+      @confirm="onConfirm"
+    />
   </div>
 </template>
 
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus } from '@element-plus/icons-vue'
+import { toast } from 'vue-sonner'
+import { Plus } from 'lucide-vue-next'
+import ConfirmDialog from '../components/ConfirmDialog.vue'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Switch } from '@/components/ui/switch'
+import { Table, TableBody, TableCell, TableEmpty, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { dictApi, metaApi } from '../api'
 
 const kinds = ref([
@@ -143,7 +207,10 @@ const usage = ref({})
 const loading = ref(false)
 const saving = ref(false)
 const dialogVisible = ref(false)
-const formRef = ref(null)
+const mergeDialogVisible = ref(false)
+const mergeSource = ref(null)
+const mergeTargetId = ref('')
+const mergeOptions = ref([])
 const form = reactive({
   id: null,
   kind: 'department',
@@ -153,9 +220,15 @@ const form = reactive({
   sort_order: 0,
   is_active: true
 })
-const rules = {
-  name: [{ required: true, message: '请输入字典项名称', trigger: 'blur' }]
-}
+
+const confirmState = reactive({
+  open: false,
+  title: '',
+  description: '',
+  confirmText: '确认',
+  danger: false,
+  handler: null
+})
 
 const currentItems = computed(() => grouped.value[activeKind.value] || [])
 const usageRows = computed(() => usage.value[activeKind.value] || [])
@@ -229,9 +302,10 @@ function quickRegister(row) {
 }
 
 async function handleSubmit() {
-  if (!formRef.value) return
-  const valid = await formRef.value.validate().catch(() => false)
-  if (!valid) return
+  if (!form.name.trim()) {
+    toast.error('请输入字典项名称')
+    return
+  }
   saving.value = true
   try {
     const payload = {
@@ -239,15 +313,15 @@ async function handleSubmit() {
       name: form.name.trim(),
       aliases: form.aliases,
       parent_name: form.parent_name,
-      sort_order: form.sort_order,
+      sort_order: form.sort_order || 0,
       is_active: form.is_active
     }
     if (form.id) {
       await dictApi.update(form.id, payload)
-      ElMessage.success('字典项已更新')
+      toast.success('字典项已更新')
     } else {
       await dictApi.create(payload)
-      ElMessage.success('字典项已新增')
+      toast.success('字典项已新增')
     }
     dialogVisible.value = false
     loadUsage()
@@ -261,63 +335,55 @@ async function handleSubmit() {
 function openMerge(row) {
   const options = currentItems.value.filter((item) => item.id !== row.id)
   if (!options.length) {
-    ElMessage.warning('没有可合并的目标字典项')
+    toast.warning('没有可合并的目标字典项')
     return
   }
-  ElMessageBox.prompt(
-    `将「${row.name}」合并到其它取值：现有数据会被改写，源字典项将被删除。`,
-    '合并字典项',
-    {
-      inputPlaceholder: '请输入目标名称，例如：计算机学院',
-      inputValidator: (value) => {
-        const target = (value || '').trim()
-        if (!target) return '请输入目标名称'
-        if (target === row.name) return '目标不能与源相同'
-        if (!options.some((item) => item.name === target)) return '目标必须是已登记的字典项'
-        return true
-      }
-    }
-  )
-    .then(async ({ value }) => {
-      const target = options.find((item) => item.name === value.trim())
-      const data = await dictApi.merge(row.id, target.id)
-      ElMessage.success(`已合并，更新了 ${data.affected} 条数据`)
-      loadUsage()
-    })
-    .catch(() => {})
+  mergeOptions.value = options
+  mergeSource.value = row
+  mergeTargetId.value = ''
+  mergeDialogVisible.value = true
+}
+
+async function confirmMerge() {
+  if (!mergeTargetId.value) {
+    toast.error('请选择目标字典项')
+    return
+  }
+  const data = await dictApi.merge(mergeSource.value.id, Number(mergeTargetId.value))
+  toast.success(`已合并，更新了 ${data.affected} 条数据`)
+  mergeDialogVisible.value = false
+  loadUsage()
+}
+
+function askConfirm({ title, description, confirmText, danger, handler }) {
+  confirmState.title = title
+  confirmState.description = description
+  confirmState.confirmText = confirmText
+  confirmState.danger = danger
+  confirmState.handler = handler
+  confirmState.open = true
+}
+
+function onConfirm() {
+  confirmState.open = false
+  const handler = confirmState.handler
+  confirmState.handler = null
+  if (handler) handler()
 }
 
 function remove(row) {
-  ElMessageBox.confirm(
-    `确认删除字典项「${row.name}」吗？存量数据中的取值不会被清除。`,
-    '删除确认',
-    { confirmButtonText: '删除', cancelButtonText: '取消', type: 'warning' }
-  )
-    .then(async () => {
+  askConfirm({
+    title: '删除确认',
+    description: `确认删除字典项「${row.name}」吗？存量数据中的取值不会被清除。`,
+    confirmText: '删除',
+    danger: true,
+    handler: async () => {
       await dictApi.remove(row.id)
-      ElMessage.success('字典项已删除')
+      toast.success('字典项已删除')
       loadUsage()
-    })
-    .catch(() => {})
+    }
+  })
 }
 
 onMounted(loadAll)
 </script>
-
-<style scoped>
-.section-title {
-  margin: 0 0 8px;
-  font-size: 14px;
-  color: #303133;
-}
-
-.section-hint {
-  margin: 0 0 10px;
-  font-size: 12px;
-  color: #909399;
-}
-
-.muted {
-  color: #909399;
-}
-</style>

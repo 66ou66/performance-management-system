@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { ElMessage } from 'element-plus'
+import { toast } from 'vue-sonner'
 
 const TOKEN_KEY = 'achievement_token'
 const REFRESH_KEY = 'achievement_refresh_token'
@@ -102,7 +102,7 @@ request.interceptors.response.use(
       return payload.data
     }
     const message = (payload && payload.message) || '请求失败'
-    ElMessage.error(message)
+    toast.error(message)
     return Promise.reject(new Error(message))
   },
   async (error) => {
@@ -137,15 +137,15 @@ request.interceptors.response.use(
     if (status === 401) {
       if (isAuthUrl) {
         // 登录/刷新失败：直接把服务端提示显示出来，不再重复跳转
-        ElMessage.error(message)
+        toast.error(message)
       } else {
-        ElMessage.error('登录已过期，请重新登录')
+        toast.error('登录已过期，请重新登录')
         redirectToLogin()
       }
       return Promise.reject(new Error(message))
     }
 
-    ElMessage.error(message)
+    toast.error(message)
     return Promise.reject(new Error(message))
   }
 )

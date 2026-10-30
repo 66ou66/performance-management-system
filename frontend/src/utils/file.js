@@ -1,4 +1,4 @@
-import { ElMessage } from 'element-plus'
+import { toast } from 'vue-sonner'
 
 export function saveBlob(response, fallbackName) {
   const blob = response.data
@@ -13,7 +13,7 @@ export function saveBlob(response, fallbackName) {
       } catch (err) {
         message = '文件下载失败'
       }
-      ElMessage.error(message)
+      toast.error(message)
     }
     reader.readAsText(blob)
     return
@@ -44,7 +44,7 @@ export function saveBlob(response, fallbackName) {
   link.click()
   document.body.removeChild(link)
   window.URL.revokeObjectURL(url)
-  ElMessage.success('文件已开始下载')
+  toast.success('文件已开始下载')
 }
 
 export function openBlob(response) {
@@ -52,7 +52,7 @@ export function openBlob(response) {
   const url = window.URL.createObjectURL(blob)
   const opened = window.open(url, '_blank')
   if (!opened) {
-    ElMessage.warning('浏览器阻止了新窗口，请允许弹窗后重试')
+    toast.warning('浏览器阻止了新窗口，请允许弹窗后重试')
   }
   setTimeout(() => window.URL.revokeObjectURL(url), 60000)
 }

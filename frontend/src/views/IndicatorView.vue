@@ -1,103 +1,134 @@
 <template>
-  <div class="page">
-    <div class="page-header">
+  <div class="space-y-4 p-6">
+    <div class="flex flex-wrap items-start justify-between gap-3">
       <div>
-        <h2 class="page-title">认证指标点管理</h2>
-        <p class="page-subtitle">
+        <h2 class="text-xl font-semibold tracking-tight">认证指标点管理</h2>
+        <p class="mt-1 text-sm text-muted-foreground">
           工程教育认证毕业要求指标点：用于把教师与学生的业绩成果挂接到具体毕业要求，形成达成度支撑
         </p>
       </div>
-      <div class="page-actions">
-        <el-button :icon="Refresh" @click="loadAll">刷新</el-button>
-        <el-button type="primary" :icon="Plus" @click="openCreate">新增指标点</el-button>
+      <div class="flex gap-2">
+        <Button variant="outline" @click="loadAll"><RefreshCw class="size-4" /> 刷新</Button>
+        <Button @click="openCreate"><Plus class="size-4" /> 新增指标点</Button>
       </div>
     </div>
 
-    <div class="card">
-      <el-alert
-        v-if="coverage"
-        type="info"
-        :closable="false"
-        show-icon
-        class="coverage-alert"
-      >
-        <template #title>
-          当前统计口径下共 {{ coverage.total_achievements }} 条成果，
-          其中 {{ coverage.covered_achievements }} 条已关联指标点（覆盖率
-          {{ coverage.coverage_percent }}%）；未覆盖指标点：
-          {{ coverage.uncovered_indicators.length ? coverage.uncovered_indicators.join('、') : '无' }}
-        </template>
-      </el-alert>
+    <!-- 覆盖度提示 -->
+    <Alert v-if="coverage">
+      <Info class="size-4" />
+      <AlertTitle>指标点覆盖情况</AlertTitle>
+      <AlertDescription>
+        当前统计口径下共 {{ coverage.total_achievements }} 条成果，
+        其中 {{ coverage.covered_achievements }} 条已关联指标点（覆盖率
+        {{ coverage.coverage_percent }}%）；未覆盖指标点：
+        {{ coverage.uncovered_indicators.length ? coverage.uncovered_indicators.join('、') : '无' }}
+      </AlertDescription>
+    </Alert>
 
-      <el-table :data="items" v-loading="loading" border stripe empty-text="暂无指标点">
-        <el-table-column prop="code" label="编号" width="80" />
-        <el-table-column prop="name" label="指标点名称" width="200" />
-        <el-table-column prop="description" label="说明" min-width="300" show-overflow-tooltip />
-        <el-table-column prop="achievement_count" label="关联成果" width="110">
-          <template #default="{ row }">
-            <el-link type="primary" :underline="false" @click="viewAchievements(row)">
-              {{ row.achievement_count || 0 }} 条
-            </el-link>
-          </template>
-        </el-table-column>
-        <el-table-column prop="sort_order" label="排序" width="80" />
-        <el-table-column label="状态" width="90">
-          <template #default="{ row }">
-            <el-tag size="small" :type="row.is_active ? 'success' : 'info'">
-              {{ row.is_active ? '启用' : '停用' }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" width="170" fixed="right">
-          <template #default="{ row }">
-            <el-button link type="primary" size="small" @click="openEdit(row)">编辑</el-button>
-            <el-button link type="danger" size="small" @click="remove(row)">删除</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
+    <!-- 表格 -->
+    <div class="rounded-xl border bg-white shadow-sm">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead class="w-[80px]">编号</TableHead>
+            <TableHead class="w-[200px]">指标点名称</TableHead>
+            <TableHead>说明</TableHead>
+            <TableHead class="w-[110px]">关联成果</TableHead>
+            <TableHead class="w-[80px]">排序</TableHead>
+            <TableHead class="w-[90px]">状态</TableHead>
+            <TableHead class="w-[170px] text-right">操作</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          <TableRow v-for="row in items" :key="row.id">
+            <TableCell>{{ row.code }}</TableCell>
+            <TableCell class="font-medium">{{ row.name }}</TableCell>
+            <TableCell class="max-w-[300px] truncate text-muted-foreground">{{ row.description || '-' }}</TableCell>
+            <TableCell>
+              <Button variant="link" class="h-auto p-0" @click="viewAchievements(row)">
+                {{ row.achievement_count || 0 }} 条
+              </Button>
+            </TableCell>
+            <TableCell>{{ row.sort_order }}</TableCell>
+            <TableCell>
+              <Badge :variant="row.is_active ? 'secondary' : 'outline'" :class="row.is_active ? 'text-emerald-600' : 'text-muted-foreground'">
+                {{ row.is_active ? '启用' : '停用' }}
+              </Badge>
+            </TableCell>
+            <TableCell class="text-right">
+              <div class="flex justify-end gap-1">
+                <Button variant="ghost" size="sm" @click="openEdit(row)">编辑</Button>
+                <Button variant="ghost" size="sm" class="text-destructive hover:text-destructive" @click="remove(row)">删除</Button>
+              </div>
+            </TableCell>
+          </TableRow>
+          <TableEmpty v-if="!items.length" :colspan="7">暂无指标点</TableEmpty>
+        </TableBody>
+      </Table>
     </div>
 
-    <el-dialog
-      v-model="dialogVisible"
-      :title="form.id ? '编辑指标点' : '新增指标点'"
-      width="560px"
-    >
-      <el-form ref="formRef" :model="form" :rules="rules" label-width="90px">
-        <el-form-item label="编号" prop="code">
-          <el-input v-model="form.code" placeholder="例如 1 或 3.2" />
-        </el-form-item>
-        <el-form-item label="名称" prop="name">
-          <el-input v-model="form.name" placeholder="例如 工程知识" maxlength="120" />
-        </el-form-item>
-        <el-form-item label="说明">
-          <el-input
-            v-model="form.description"
-            type="textarea"
-            :rows="4"
-            maxlength="500"
-            show-word-limit
-          />
-        </el-form-item>
-        <el-form-item label="排序">
-          <el-input-number v-model="form.sort_order" :controls="false" style="width: 100%" />
-        </el-form-item>
-        <el-form-item label="启用">
-          <el-switch v-model="form.is_active" />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="saving" @click="handleSubmit">保存</el-button>
-      </template>
-    </el-dialog>
+    <!-- 新增/编辑弹窗 -->
+    <Dialog v-model:open="dialogVisible">
+      <DialogContent class="sm:max-w-[560px]">
+        <DialogHeader>
+          <DialogTitle>{{ form.id ? '编辑指标点' : '新增指标点' }}</DialogTitle>
+        </DialogHeader>
+        <div class="space-y-3.5">
+          <div class="grid gap-1.5">
+            <Label>编号 <span class="text-destructive">*</span></Label>
+            <Input v-model="form.code" placeholder="例如 1 或 3.2" />
+          </div>
+          <div class="grid gap-1.5">
+            <Label>名称 <span class="text-destructive">*</span></Label>
+            <Input v-model="form.name" maxlength="120" placeholder="例如 工程知识" />
+          </div>
+          <div class="grid gap-1.5">
+            <Label>说明</Label>
+            <Textarea v-model="form.description" rows="4" maxlength="500" placeholder="指标点详细说明" />
+          </div>
+          <div class="grid gap-1.5">
+            <Label>排序</Label>
+            <Input v-model.number="form.sort_order" type="number" />
+          </div>
+          <div class="flex items-center gap-2">
+            <Switch :checked="form.is_active" @update:checked="form.is_active = $event" />
+            <span class="text-sm text-muted-foreground">启用</span>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" @click="dialogVisible = false">取消</Button>
+          <Button :disabled="saving" @click="handleSubmit">保存</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+
+    <!-- 确认弹窗 -->
+    <ConfirmDialog
+      v-model:open="confirmState.open"
+      :title="confirmState.title"
+      :description="confirmState.description"
+      :confirm-text="confirmState.confirmText"
+      :danger="confirmState.danger"
+      @confirm="onConfirm"
+    />
   </div>
 </template>
 
 <script setup>
 import { onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, Refresh } from '@element-plus/icons-vue'
+import { toast } from 'vue-sonner'
+import { Info, Plus, RefreshCw } from 'lucide-vue-next'
+import ConfirmDialog from '../components/ConfirmDialog.vue'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Switch } from '@/components/ui/switch'
+import { Table, TableBody, TableCell, TableEmpty, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Textarea } from '@/components/ui/textarea'
 import { indicatorApi, statsApi } from '../api'
 
 const router = useRouter()
@@ -106,12 +137,16 @@ const coverage = ref(null)
 const loading = ref(false)
 const saving = ref(false)
 const dialogVisible = ref(false)
-const formRef = ref(null)
 const form = reactive({ id: null, code: '', name: '', description: '', sort_order: 0, is_active: true })
-const rules = {
-  code: [{ required: true, message: '请输入指标点编号', trigger: 'blur' }],
-  name: [{ required: true, message: '请输入指标点名称', trigger: 'blur' }]
-}
+
+const confirmState = reactive({
+  open: false,
+  title: '',
+  description: '',
+  confirmText: '确认',
+  danger: false,
+  handler: null
+})
 
 async function loadAll() {
   loading.value = true
@@ -150,25 +185,35 @@ function openEdit(row) {
   dialogVisible.value = true
 }
 
+function validate() {
+  if (!form.code.trim()) {
+    toast.error('请输入指标点编号')
+    return false
+  }
+  if (!form.name.trim()) {
+    toast.error('请输入指标点名称')
+    return false
+  }
+  return true
+}
+
 async function handleSubmit() {
-  if (!formRef.value) return
-  const valid = await formRef.value.validate().catch(() => false)
-  if (!valid) return
+  if (!validate()) return
   saving.value = true
   try {
     const payload = {
       code: form.code.trim(),
       name: form.name.trim(),
       description: form.description,
-      sort_order: form.sort_order,
+      sort_order: form.sort_order || 0,
       is_active: form.is_active
     }
     if (form.id) {
       await indicatorApi.update(form.id, payload)
-      ElMessage.success('指标点已更新')
+      toast.success('指标点已更新')
     } else {
       await indicatorApi.create(payload)
-      ElMessage.success('指标点已新增')
+      toast.success('指标点已新增')
     }
     dialogVisible.value = false
     loadAll()
@@ -179,18 +224,34 @@ async function handleSubmit() {
   }
 }
 
+function askConfirm({ title, description, confirmText, danger, handler }) {
+  confirmState.title = title
+  confirmState.description = description
+  confirmState.confirmText = confirmText
+  confirmState.danger = danger
+  confirmState.handler = handler
+  confirmState.open = true
+}
+
+function onConfirm() {
+  confirmState.open = false
+  const handler = confirmState.handler
+  confirmState.handler = null
+  if (handler) handler()
+}
+
 function remove(row) {
-  ElMessageBox.confirm(
-    `删除指标点「${row.code} ${row.name}」将解除 ${row.achievement_count || 0} 条成果的关联，确认继续吗？`,
-    '删除确认',
-    { confirmButtonText: '删除', cancelButtonText: '取消', type: 'warning' }
-  )
-    .then(async () => {
+  askConfirm({
+    title: '删除确认',
+    description: `删除指标点「${row.code} ${row.name}」将解除 ${row.achievement_count || 0} 条成果的关联，确认继续吗？`,
+    confirmText: '删除',
+    danger: true,
+    handler: async () => {
       await indicatorApi.remove(row.id)
-      ElMessage.success('指标点已删除')
+      toast.success('指标点已删除')
       loadAll()
-    })
-    .catch(() => {})
+    }
+  })
 }
 
 function viewAchievements(row) {
@@ -199,14 +260,3 @@ function viewAchievements(row) {
 
 onMounted(loadAll)
 </script>
-
-<style scoped>
-.page-actions {
-  display: flex;
-  gap: 8px;
-}
-
-.coverage-alert {
-  margin-bottom: 12px;
-}
-</style>
